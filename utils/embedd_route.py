@@ -17,17 +17,22 @@ cur = conn.cursor()
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Fetch routes data with NULL handling and enriched context
+# Enhanced routes embedding with full names
 cur.execute("""
     SELECT 
-        rid, 
+        r.rid, 
         CONCAT(
-            'Flight from ', IFNULL(src_ap, 'Unknown'), 
-            ' to ', IFNULL(dst_ap, 'Unknown'), 
-            ' by airline ', IFNULL(airline, 'Unknown'), 
-            ' on ', IFNULL(equipment, 'N/A')
+            'Flight from ', IFNULL(ap1.name, r.src_ap), ' (', IFNULL(r.src_ap, 'N/A'), ') ',
+            'to ', IFNULL(ap2.name, r.dst_ap), ' (', IFNULL(r.dst_ap, 'N/A'), ') ',
+            'by airline ', IFNULL(al.name, r.airline), ' ',
+            'on ', IFNULL(r.equipment, 'N/A')
         ) AS combined_text 
-    FROM routes
+    FROM routes r
+    LEFT JOIN airports ap1 ON r.src_ap = ap1.iata
+    LEFT JOIN airports ap2 ON r.dst_ap = ap2.iata
+    LEFT JOIN airlines al ON r.airline = al.iata
 """)
+
 rows = cur.fetchall()
 
 print(f"Processing {len(rows)} routes...")

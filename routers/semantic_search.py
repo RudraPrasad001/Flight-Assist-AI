@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends,Query
 from utils.search_airport import semantic_search as s_airport
 from utils.search_airline import semantic_search as s_airline
 from utils.search_plane import semantic_search as s_plane
+from utils.search_route import semantic_search as s_route
 
 
 router = APIRouter()
@@ -17,4 +18,8 @@ async def get_example(query:str = Query (...,description="Search Query")):
 @router.get("/search-plane")
 async def get_example(query:str = Query (...,description="Search Query")):
     result =await s_plane(query)
+    return {"data": result}
+@router.get("/search-route")
+async def get_example(query:str = Query (...,description="Search Query")):
+    result =await s_route(query)
     return {"data": result}
