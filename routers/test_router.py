@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from utils.embedd_airport import example_function
+from utils.example_util import example_function
 
 router = APIRouter()
 
