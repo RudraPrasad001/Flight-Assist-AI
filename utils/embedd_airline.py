@@ -8,9 +8,9 @@ load_dotenv()
 try:
     conn = mariadb.connect(
         user="root",
-        password="7397",  # Direct password
-        host="127.0.0.1",
-        port=3308,  # Correct MariaDB port
+        password=os.getenv("DB_PASSWORD"),  # Direct password
+        host="127.0.0.1", # or use localhost da
+        port=os.getenv("DB_PORT"),  # Correct MariaDB port
         database="flightdb2"
     )
     print("Connected to MariaDB successfully!")

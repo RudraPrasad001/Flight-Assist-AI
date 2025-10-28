@@ -14,12 +14,11 @@ db_password = os.getenv("DB_PASSWORD")
 print(f"Attempting to connect with password: {'*' * len(db_password) if db_password else 'None'}")
 
 try:
-    # Simple connection
     conn = mariadb.connect(
         user="root",
-        password="7397",
+        password=os.getenv("DB_PASSWORD"),
         host="127.0.0.1",
-        port=3308,
+        port=os.getenv("DB_PORT"),
         database="flightdb2"
     )
     print("Connected to MariaDB successfully!")
