@@ -5,14 +5,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-conn = mariadb.connect(
-    user="root",
-    password=os.getenv("DB_PASSWORD"),
-    host="127.0.0.1",
-    port=3306,
-    database="flightdb2"
-)
+try:
+    conn = mariadb.connect(
+        user="root",
+        password="7397",  # Direct password
+        host="127.0.0.1",
+        port=3308,  # Correct MariaDB port
+        database="flightdb2"
+    )
+    print("Connected to MariaDB successfully!")
+except mariadb.Error as e:
+    print(f"Error connecting to MariaDB: {e}")
+    exit(1)
+
 cur = conn.cursor()
+
+# Add routes_embedding column if it doesn't exist
+try:
+    cur.execute("ALTER TABLE routes ADD COLUMN routes_embedding VECTOR(384)")
+    conn.commit()  # Commit the DDL statement
+    print("Added routes_embedding column")
+except mariadb.Error as e:
+    if "Duplicate column" in str(e) or "already exists" in str(e):
+        print("routes_embedding column already exists")
+    else:
+        print(f"Error adding column: {e}")
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
