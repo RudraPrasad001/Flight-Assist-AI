@@ -28,7 +28,7 @@ async def semantic_search(query_text, top_k=5):
             user="root",
             password=os.getenv("DB_PASSWORD"),
             host="127.0.0.1",
-            port=os.getenv("DB_PORT"),
+            port=int(os.getenv("DB_PORT")),
             database="flightdb2"
         )
     except mariadb.Error as e:

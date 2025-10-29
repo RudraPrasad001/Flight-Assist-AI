@@ -10,7 +10,7 @@ try:
         user="root",
         password=os.getenv("DB_PASSWORD"),
         host="127.0.0.1",
-        port=os.getenv("DB_PORT"),
+        port=int(os.getenv("DB_PORT")),
         database="flightdb2"
     )
     print("Connected to MariaDB successfully!")
