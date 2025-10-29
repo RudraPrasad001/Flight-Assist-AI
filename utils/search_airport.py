@@ -19,13 +19,17 @@ async def semantic_search(query_text, top_k=5):
     query_vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
     # Connect to MariaDB
-    conn = mariadb.connect(
-        user="root",
-        password=os.getenv("DB_PASSWORD"),
-        host="127.0.0.1",
-        port=3306,
-        database="flightdb2"
-    )
+    try:
+        conn = mariadb.connect(
+            user="root",
+            password=os.getenv("DB_PASSWORD"),  # Direct password
+            host="127.0.0.1",
+            port=os.getenv("DB_PORT"),  # Correct MariaDB port
+            database="flightdb2"
+        )
+    except mariadb.Error as e:
+        print(f"Database connection error: {e}")
+        return []
     cur = conn.cursor()
 
     # SQL: Use VEC_DISTANCE_COSINE for cosine similarity distance,

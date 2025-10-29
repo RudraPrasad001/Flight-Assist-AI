@@ -23,13 +23,17 @@ async def semantic_search(query_text, top_k=5):
 
 
     # Connect to MariaDB
-    conn = mariadb.connect(
-        user="root",
-        password=os.getenv("DB_PASSWORD"),
-        host="127.0.0.1",
-        port=3306,
-        database="flightdb2"
-    )
+    try:
+        conn = mariadb.connect(
+            user="root",
+            password=os.getenv("DB_PASSWORD"),
+            host="127.0.0.1",
+            port=os.getenv("DB_PORT"),
+            database="flightdb2"
+        )
+    except mariadb.Error as e:
+        print(f"Database connection error: {e}")
+        return []
     cur = conn.cursor()
 
 
