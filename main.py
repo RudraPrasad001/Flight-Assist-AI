@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 # Import your routers
 from routers.test_router import router as example_router
 from routers.semantic_search import router as airport_router
+from routers.chat_router import router as chat_router
 load_dotenv()
 app = FastAPI(
     title="My FastAPI Application",
@@ -22,6 +23,7 @@ app.add_middleware(
 # Include routers
 app.include_router(example_router, prefix="/api/v1")
 app.include_router(airport_router,prefix="/api/airport")
+app.include_router(chat_router, prefix="/api")
 
 @app.get("/")
 def read_root():
