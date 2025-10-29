@@ -8,7 +8,81 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  apiResponse?: ApiResponse;
 }
+
+interface ApiResponse {
+  query: string;
+  classification: string[];
+  results: {
+    airports?: Array<[string, string, number, number]>;
+    airlines?: Array<[string, string | null, string | null, number, number]>;
+    routes?: Array<[string, string, string, string, string, string, string, string, string, number, number]>;
+  };
+  summary: string;
+  total_results: number;
+}
+
+const formatApiResponse = (data: ApiResponse): string => {
+  let formattedText = `🔍 **Search Results for:** "${data.query}"\n\n`;
+  
+  const airports = data.results.airports || [];
+  const routes = data.results.routes || [];
+  const airlines = data.results.airlines || [];
+  
+  if (airports.length > 0) {
+    formattedText += `✈️ **AIRPORTS** (${airports.length})\n`;
+    formattedText += `┌─────────────────────────────────────────────┐\n`;
+    airports.forEach((airport, index) => {
+      const [name, country, id, similarity] = airport;
+      formattedText += `│ 🏢 ${name}\n`;
+      formattedText += `│    📍 ${country}\n`;
+      formattedText += `│    🆔 ID: ${id} | Match: ${(similarity * 100).toFixed(1)}%\n`;
+      if (index < airports.length - 1) {
+        formattedText += `├─────────────────────────────────────────────┤\n`;
+      }
+    });
+    formattedText += `└─────────────────────────────────────────────┘\n\n`;
+  }
+
+  if (routes.length > 0) {
+    formattedText += `🛫 **FLIGHT ROUTES** (${routes.length})\n`;
+    formattedText += `┌─────────────────────────────────────────────┐\n`;
+    routes.forEach((route, index) => {
+      const [airlineCode, , sourceCode, sourceName, sourceCity, destCode, destName, destCity, aircraft, id, similarity] = route;
+      formattedText += `│ 🌟 ${airlineCode} Flight\n`;
+      formattedText += `│    🛫 FROM: ${sourceName} (${sourceCode})\n`;
+      formattedText += `│         📍 ${sourceCity}\n`;
+      formattedText += `│    🛬 TO: ${destName} (${destCode})\n`;
+      formattedText += `│         📍 ${destCity}\n`;
+      formattedText += `│    ✈️ Aircraft: ${aircraft.replace(/\r/g, '')} | Match: ${(similarity * 100).toFixed(1)}%\n`;
+      if (index < routes.length - 1) {
+        formattedText += `├─────────────────────────────────────────────┤\n`;
+      }
+    });
+    formattedText += `└─────────────────────────────────────────────┘\n\n`;
+  }
+
+  if (airlines.length > 0) {
+    formattedText += `🏢 **AIRLINES** (${airlines.length})\n`;
+    formattedText += `┌─────────────────────────────────────────────┐\n`;
+    airlines.forEach((airline, index) => {
+      const [name, country, code, id, similarity] = airline;
+      formattedText += `│ 🏢 ${name || 'Unknown Airline'}\n`;
+      if (country) formattedText += `│    📍 ${country}\n`;
+      if (code) formattedText += `│    🔤 Code: ${code}\n`;
+      formattedText += `│    🆔 ID: ${id} | Match: ${(similarity * 100).toFixed(1)}%\n`;
+      if (index < airlines.length - 1) {
+        formattedText += `├─────────────────────────────────────────────┤\n`;
+      }
+    });
+    formattedText += `└─────────────────────────────────────────────┘\n\n`;
+  }
+
+  formattedText += `📊 **Summary:** ${data.summary}`;
+  
+  return formattedText;
+};
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
@@ -46,22 +120,23 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat?query=${encodeURIComponent(input)}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: input }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        const formattedText = formatApiResponse(data);
         const aiMessage: Message = {
           id: Date.now() + 1,
-          text: data.response,
+          text: formattedText,
           isUser: false,
-          timestamp: new Date()
+          timestamp: new Date(),
+          apiResponse: data
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {
@@ -214,7 +289,15 @@ export default function Home() {
                           : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700'
                       } shadow-sm`}
                     >
-                      <p className="leading-relaxed">{message.text}</p>
+                      <div className="leading-relaxed">
+                        {message.isUser ? (
+                          <p>{message.text}</p>
+                        ) : (
+                          <pre className="whitespace-pre-wrap font-sans text-sm overflow-x-auto">
+                            {message.text}
+                          </pre>
+                        )}
+                      </div>
                       <p className="text-xs opacity-70 mt-2">
                         {message.timestamp.toLocaleTimeString()}
                       </p>
