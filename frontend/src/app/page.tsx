@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Plane, User, MessageSquare, Globe, Calendar, MapPin, Clock, Search, Navigation, Building2, Route, Users, Link } from 'lucide-react';
+import {MapWidget} from "../../components/MapComponent"
 
 interface Message {
   id: number;
@@ -11,7 +12,60 @@ interface Message {
   apiResponse?: ApiResponse;
 }
 
-interface ApiResponse {
+// Map types mirroring backend utils/route_map.py
+export type MapAirport = {
+  code?: string | null;
+  iata?: string | null;
+  icao?: string | null;
+  name: string;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type DirectRoute = {
+  route_id: number;
+  src: string;
+  dst: string;
+  src_city: string;
+  src_country: string;
+  dst_city: string;
+  dst_country: string;
+  airline: string;
+  airline_code: string;
+  equipment: string;
+  stops: number;      // always 0 for direct
+  type: 'direct';
+};
+
+export type LayoverRoute = {
+  src: string;
+  hub: string;
+  dst: string;
+  hub_name: string;
+  hub_city: string;
+  hub_country: string;
+  hub_latitude: number | null;
+  hub_longitude: number | null;
+  leg1_airline: string;
+  leg2_airline: string;
+  leg1_equipment: string;
+  leg2_equipment: string;
+  leg1_rid: number;
+  leg2_rid: number;
+  stops: number;      // 1 for one-stop
+  type: 'layover';
+};
+
+export type MapData = {
+  airports: MapAirport[];
+  direct_routes: DirectRoute[];
+  layover_routes: LayoverRoute[];
+};
+
+// Your existing response with map fields added
+export interface ApiResponse {
   query: string;
   classification: string[];
   results: {
@@ -21,7 +75,11 @@ interface ApiResponse {
   };
   summary: string;
   total_results: number;
+  // NEW
+  has_map?: boolean;
+  map_data?: MapData | null;
 }
+
 
 // Utility function to get airport code from name
 const getAirportCode = (airportName: string): string => {
@@ -471,6 +529,17 @@ export default function Home() {
                                   </div>
                                 </div>
                               )}
+
+                              {message.apiResponse?.map_data && message.apiResponse?.map_data.airports?.length > 0 && (
+                              <div className="space-y-3">
+                                <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+                                  <span className="inline-flex w-5 h-5 items-center justify-center rounded bg-blue-500 text-white">🗺️</span>
+                                  Route Map
+                                </h3>
+                                <MapWidget mapData={message.apiResponse.map_data as MapData} />
+                              </div>
+                            )}
+
 
                               {/* Airlines Section */}
                               {message.apiResponse.results.airlines && message.apiResponse.results.airlines.length > 0 && (
