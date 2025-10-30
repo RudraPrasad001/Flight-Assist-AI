@@ -13,7 +13,10 @@ async def chat_search(query: str = Query(..., description="Natural language sear
             "classification": result.get("classification", []),
             "results": result.get("results", {}),
             "summary": result.get("summary", ""),
+            "map_data": result.get("map_data",{}),
+            "has_map": result.get("has_map",""),
             "total_results": result.get("total_results", 0)
+
         }
     except Exception as e:
         return {
