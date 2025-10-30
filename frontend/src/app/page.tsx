@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Plane, User, MessageSquare, Globe, Calendar, MapPin, Clock, Search, Navigation, Building2, Route, Users } from 'lucide-react';
+import { Send, Plane, User, MessageSquare, Globe, Calendar, MapPin, Clock, Search, Navigation, Building2, Route, Users, Link } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -23,9 +23,54 @@ interface ApiResponse {
   total_results: number;
 }
 
+// Utility function to get airport code from name
+const getAirportCode = (airportName: string): string => {
+  // Try to extract common airport codes or use first 3 letters of city name
+  const codeMap: { [key: string]: string } = {
+    'Chennai International Airport': 'MAA',
+    'Mumbai': 'BOM',
+    'Delhi': 'DEL',
+    'Bangalore': 'BLR',
+    'Kolkata': 'CCU',
+    'Hyderabad': 'HYD',
+    'Pune': 'PNQ',
+    'Ahmedabad': 'AMD',
+    'Kochi': 'COK',
+    'Goa': 'GOI',
+    'Tokyo Haneda International Airport': 'HND',
+    'Tokyo Narita': 'NRT',
+    'London Heathrow': 'LHR',
+    'New York JFK': 'JFK',
+    'Dubai': 'DXB',
+    'Kempegowda International Airport': 'BLR',
+    'Beijing Capital International Airport': 'PEK',
+    'Shanghai Hongqiao International Airport': 'SHA',
+    'Singapore Changi Airport': 'SIN'
+  };
+  
+  // Check if we have a direct mapping
+  for (const [key, code] of Object.entries(codeMap)) {
+    if (airportName.toLowerCase().includes(key.toLowerCase())) {
+      return code;
+    }
+  }
+  
+  // Fallback: use first 3 letters of the first word (usually city name)
+  return airportName.substring(0, 3).toUpperCase();
+};
+
+// Utility function to generate booking URL in Goibibo format
+const generateBookingURL = (fromCode: string, toCode: string): string => {
+  const today = new Date();
+  const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+  
+  return `https://www.goibibo.com/flight/search?itinerary=${fromCode}-${toCode}-${dateStr}&tripType=O&paxType=A-1_C-0_I-0&intl=false&cabinClass=E&lang=eng`;
+};
+
 // Card Components
 const AirportCard = ({ airport }: { airport: [string, string, number, number] }) => {
   const [name, country, id, similarity] = airport;
+
   return (
     <div className="bg-gradient-to-r from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-750 border border-blue-200 dark:border-gray-600 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-start gap-3">
@@ -44,6 +89,23 @@ const AirportCard = ({ airport }: { airport: [string, string, number, number] })
               {(similarity * 100).toFixed(1)}% match
             </span>
           </div>
+          
+          {/* Search Flights Button */}
+          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-gray-600">
+            <button
+              onClick={() => {
+                const fromCode = getAirportCode(name);
+                // Use a popular destination based on the country or default to DEL
+                const defaultDestination = country === 'India' ? 'BOM' : 
+                                         country === 'United Kingdom' ? 'BOM' :
+                                         country === 'Japan' ? 'NRT' : 'DEL';
+                window.open(generateBookingURL(fromCode, defaultDestination), '_blank');
+              }}
+              className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg text-sm"
+            >
+              ✈️ Search Flights from {getAirportCode(name)}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -52,6 +114,7 @@ const AirportCard = ({ airport }: { airport: [string, string, number, number] })
 
 const RouteCard = ({ route }: { route: [string, string, string, string, string, string, string, string, string, number, number] }) => {
   const [airlineCode, airline, fromCode, fromAirport, fromCity, toCode, toAirport, toCity, aircraft, id, similarity] = route;
+  
   return (
     <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-gray-800 dark:to-gray-750 border border-orange-300 dark:border-orange-500 rounded-xl p-4 shadow-lg hover:shadow-xl transition-all">
       <div className="flex items-start gap-3">
@@ -74,15 +137,36 @@ const RouteCard = ({ route }: { route: [string, string, string, string, string, 
             </div>
             <div className="bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm">
               <div className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide font-bold">To</div>
-              <div className="font-bold text-lg text-gray-900 dark:text-white">{toCode}</div>
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{toAirport}</div>
+              <div className="font-bold text-lg text-gray-900 dark:text-white">{toAirport}</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{toCode}</div>
               <div className="text-xs text-gray-600 dark:text-gray-400">{toCity}</div>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t-2 border-orange-200 dark:border-orange-600">
-            <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               <span>✈️ Aircraft: {aircraft.replace('\r', '')}</span>
               <span>🆔 Route: #{id}</span>
+            </div>
+            
+            {/* Booking Button */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.open(generateBookingURL(fromCode, toAirport), '_blank')}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              >
+                🛫 Book Flight on Goibibo
+              </button>
+              <button
+                onClick={() => {
+                  const url = generateBookingURL(fromCode, toCode);
+                  navigator.clipboard.writeText(url);
+                  // You could add a toast notification here
+                }}
+                className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2 px-3 rounded-lg transition-all duration-200"
+                title="Copy booking link"
+              >
+                📋
+              </button>
             </div>
           </div>
         </div>
