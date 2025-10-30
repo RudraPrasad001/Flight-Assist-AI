@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Plane, User, MessageSquare, Globe, Calendar, MapPin, Clock, Search, Navigation } from 'lucide-react';
+import { Send, Plane, User, MessageSquare, Globe, Calendar, MapPin, Clock, Search, Navigation, Building2, Route, Users } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -23,66 +23,110 @@ interface ApiResponse {
   total_results: number;
 }
 
-const formatApiResponse = (data: ApiResponse): string => {
-  let formattedText = `🔍 **Search Results for:** "${data.query}"\n\n`;
-  
-  const airports = data.results.airports || [];
-  const routes = data.results.routes || [];
-  const airlines = data.results.airlines || [];
-  
-  if (airports.length > 0) {
-    formattedText += `✈️ **AIRPORTS** (${airports.length})\n`;
-    formattedText += `┌─────────────────────────────────────────────┐\n`;
-    airports.forEach((airport, index) => {
-      const [name, country, id, similarity] = airport;
-      formattedText += `│ 🏢 ${name}\n`;
-      formattedText += `│    📍 ${country}\n`;
-      formattedText += `│    🆔 ID: ${id} | Match: ${(similarity * 100).toFixed(1)}%\n`;
-      if (index < airports.length - 1) {
-        formattedText += `├─────────────────────────────────────────────┤\n`;
-      }
-    });
-    formattedText += `└─────────────────────────────────────────────┘\n\n`;
-  }
-
-  if (routes.length > 0) {
-    formattedText += `🛫 **FLIGHT ROUTES** (${routes.length})\n`;
-    formattedText += `┌─────────────────────────────────────────────┐\n`;
-    routes.forEach((route, index) => {
-      const [airlineCode, , sourceCode, sourceName, sourceCity, destCode, destName, destCity, aircraft, id, similarity] = route;
-      formattedText += `│ 🌟 ${airlineCode} Flight\n`;
-      formattedText += `│    🛫 FROM: ${sourceName} (${sourceCode})\n`;
-      formattedText += `│         📍 ${sourceCity}\n`;
-      formattedText += `│    🛬 TO: ${destName} (${destCode})\n`;
-      formattedText += `│         📍 ${destCity}\n`;
-      formattedText += `│    ✈️ Aircraft: ${aircraft.replace(/\r/g, '')} | Match: ${(similarity * 100).toFixed(1)}%\n`;
-      if (index < routes.length - 1) {
-        formattedText += `├─────────────────────────────────────────────┤\n`;
-      }
-    });
-    formattedText += `└─────────────────────────────────────────────┘\n\n`;
-  }
-
-  if (airlines.length > 0) {
-    formattedText += `🏢 **AIRLINES** (${airlines.length})\n`;
-    formattedText += `┌─────────────────────────────────────────────┐\n`;
-    airlines.forEach((airline, index) => {
-      const [name, country, code, id, similarity] = airline;
-      formattedText += `│ 🏢 ${name || 'Unknown Airline'}\n`;
-      if (country) formattedText += `│    📍 ${country}\n`;
-      if (code) formattedText += `│    🔤 Code: ${code}\n`;
-      formattedText += `│    🆔 ID: ${id} | Match: ${(similarity * 100).toFixed(1)}%\n`;
-      if (index < airlines.length - 1) {
-        formattedText += `├─────────────────────────────────────────────┤\n`;
-      }
-    });
-    formattedText += `└─────────────────────────────────────────────┘\n\n`;
-  }
-
-  formattedText += `📊 **Summary:** ${data.summary}`;
-  
-  return formattedText;
+// Card Components
+const AirportCard = ({ airport }: { airport: [string, string, number, number] }) => {
+  const [name, country, id, similarity] = airport;
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-750 border border-blue-200 dark:border-gray-600 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+          <Building2 className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-800 dark:text-white">{name}</h3>
+          <div className="flex items-center gap-2 mt-1">
+            <MapPin className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">{country}</span>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-500">ID: {id}</span>
+            <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+              {(similarity * 100).toFixed(1)}% match
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
+
+const RouteCard = ({ route }: { route: [string, string, string, string, string, string, string, string, string, number, number] }) => {
+  const [airlineCode, airline, fromCode, fromAirport, fromCity, toCode, toAirport, toCity, aircraft, id, similarity] = route;
+  return (
+    <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-gray-800 dark:to-gray-750 border border-orange-300 dark:border-orange-500 rounded-xl p-4 shadow-lg hover:shadow-xl transition-all">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-md">
+          <Route className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-bold text-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-1 rounded shadow">{airlineCode}</span>
+            <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full font-medium shadow">
+              {(similarity * 100).toFixed(1)}% match
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide font-bold">From</div>
+              <div className="font-bold text-lg text-gray-900 dark:text-white">{fromCode}</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{fromAirport}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">{fromCity}</div>
+            </div>
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide font-bold">To</div>
+              <div className="font-bold text-lg text-gray-900 dark:text-white">{toCode}</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{toAirport}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">{toCity}</div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t-2 border-orange-200 dark:border-orange-600">
+            <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span>✈️ Aircraft: {aircraft.replace('\r', '')}</span>
+              <span>🆔 Route: #{id}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AirlineCard = ({ airline }: { airline: [string, string | null, string | null, number, number] }) => {
+  const [name, country, iata, id, similarity] = airline;
+  return (
+    <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-750 border border-purple-200 dark:border-gray-600 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+          <Users className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-800 dark:text-white">{name || 'Unknown Airline'}</h3>
+          <div className="flex items-center gap-4 mt-1">
+            {country && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{country}</span>
+              </div>
+            )}
+            {iata && (
+              <span className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                {iata}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-500">ID: {id}</span>
+            <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+              {(similarity * 100).toFixed(1)}% match
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
@@ -130,10 +174,9 @@ export default function Home() {
       const data = await response.json();
 
       if (response.ok) {
-        const formattedText = formatApiResponse(data);
         const aiMessage: Message = {
           id: Date.now() + 1,
-          text: formattedText,
+          text: data.summary || "Search completed successfully",
           isUser: false,
           timestamp: new Date(),
           apiResponse: data
@@ -283,24 +326,98 @@ export default function Home() {
                       )}
                     </div>
                     <div
-                      className={`px-5 py-3 rounded-2xl ${
+                      className={`${
                         message.isUser
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700'
-                      } shadow-sm`}
+                          ? 'px-5 py-3 bg-blue-500 text-white rounded-2xl shadow-sm'
+                          : 'w-full'
+                      }`}
                     >
-                      <div className="leading-relaxed">
-                        {message.isUser ? (
+                      {message.isUser ? (
+                        <>
                           <p>{message.text}</p>
-                        ) : (
-                          <pre className="whitespace-pre-wrap font-sans text-sm overflow-x-auto">
-                            {message.text}
-                          </pre>
-                        )}
-                      </div>
-                      <p className="text-xs opacity-70 mt-2">
-                        {message.timestamp.toLocaleTimeString()}
-                      </p>
+                          <p className="text-xs opacity-70 mt-2">
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Summary Message */}
+                          <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Search className="w-4 h-4 text-blue-500" />
+                              <span className="font-semibold">Search Results</span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {message.apiResponse?.summary || message.text}
+                            </p>
+                            <p className="text-xs opacity-70 mt-2">
+                              {message.timestamp.toLocaleTimeString()}
+                            </p>
+                          </div>
+
+                          {/* Display Cards */}
+                          {message.apiResponse && (
+                            <>
+                              {/* Airports Section */}
+                              {message.apiResponse.results.airports && message.apiResponse.results.airports.length > 0 && (
+                                <div className="space-y-3">
+                                  <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+                                    <Building2 className="w-5 h-5 text-blue-500" />
+                                    Airports ({message.apiResponse.results.airports.length})
+                                  </h3>
+                                  <div className="grid gap-3">
+                                    {message.apiResponse.results.airports.map((airport, index) => (
+                                      <AirportCard key={index} airport={airport} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Routes Section */}
+                              {message.apiResponse.results.routes && message.apiResponse.results.routes.length > 0 && (
+                                <div className="space-y-3">
+                                  <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+                                    <Route className="w-5 h-5 text-orange-500" />
+                                    Flight Routes ({message.apiResponse.results.routes.length})
+                                  </h3>
+                                  <div className="grid gap-3">
+                                    {message.apiResponse.results.routes.map((route, index) => (
+                                      <RouteCard key={index} route={route} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Airlines Section */}
+                              {message.apiResponse.results.airlines && message.apiResponse.results.airlines.length > 0 && (
+                                <div className="space-y-3">
+                                  <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+                                    <Users className="w-5 h-5 text-purple-500" />
+                                    Airlines ({message.apiResponse.results.airlines.length})
+                                  </h3>
+                                  <div className="grid gap-3">
+                                    {message.apiResponse.results.airlines.map((airline, index) => (
+                                      <AirlineCard key={index} airline={airline} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {/* Fallback for non-API responses */}
+                          {!message.apiResponse && (
+                            <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+                              <pre className="whitespace-pre-wrap font-sans text-sm overflow-x-auto">
+                                {message.text}
+                              </pre>
+                              <p className="text-xs opacity-70 mt-2">
+                                {message.timestamp.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
